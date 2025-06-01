@@ -1,0 +1,200 @@
+import random
+
+def print_extended_gcd1(a, b):
+    if a == 0:
+        return b, 0, 1
+    else:
+        g, x, y = print_extended_gcd1(b % a, a)
+        print(f"{y} - ({b} / {a}) * {x}")
+
+        return g, y - (b // a) * x, x
+def print_gcd(a, b):
+    print(f"\nНОД({a},{b})")
+    while b != 0:
+        print(f'{a} = {a//b} * {b} + {a%b}')
+        a, b = b, a % b
+
+def is_prime(n):
+    if n <= 1:
+        return False
+    for i in range(2, int(n**0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+def find_p_q():
+    while True:
+        # p = random.randint(2, 65535)
+        # q = random.randint(2, 65535)
+        p = random.randint(100, 300)
+        q = random.randint(100, 300)
+
+        if p != q and is_prime(p) and is_prime(q):
+            if 32768 <= p * q < 65535:
+                return p, q
+
+def extended_gcd(a, b):
+    """
+    Расширенный алгоритм Евклида.
+    Возвращает кортеж (gcd, x, y), где gcd - наибольший общий делитель a и b,
+    а x, y - коэффициенты, удовлетворяющие уравнению ax + by = gcd(a, b).
+    """
+    if a == 0:
+        return (b, 0, 1)
+    else:
+        gcd, x1, y1 = extended_gcd(b % a, a)
+        x = y1 - (b // a) * x1
+        y = x1
+        return (gcd, x, y)
+
+def mod_inverse(e, phi):
+    """
+    Вычисляет мультипликативно обратный элемент e по модулю phi.
+    """
+    gcd, x, y = extended_gcd(e, phi)
+    if gcd != 1:
+        raise Exception('Обратный элемент не существует')
+    else:
+        return x % phi
+
+def crt(m_p, p, m_q, q):
+    """
+    Применение Китайской теоремы об остатках для решения системы:
+    m ≡ m_p (mod p)
+    m ≡ m_q (mod q)
+    """
+    # Вычисляем обратный элемент p^{-1} mod q
+    print_gcd(p, q)
+    print_extended_gcd1(p,q)
+    gcd, inv_p, _ = extended_gcd(p, q)
+    if gcd != 1:
+        raise Exception('Модули p и q должны быть взаимно простыми для применения КТО.')
+    inv_p = inv_p % q
+    print(f"Обратный элемент {p} по модулю {q} равен {inv_p}")
+
+    # Решение системы
+    k = (m_q - m_p) * inv_p % q
+    print(f"Вычисляем k = ({m_q} - {m_p}) * {inv_p} mod {q} = {k}")
+    m = (p * k + m_p) % (p * q)
+    print(f"Находим m = ({p} * {k} + {m_p}) mod {p*q} = {m}")
+    return m
+
+def print_mod_inverse(p, q, M_1, M_2):
+    """Находит мультипликативную обратную к e по модулю phi"""
+    print_gcd(p, q)
+    print()
+    gcd, x, min_x = print_extended_gcd1(p, q)
+    if gcd != 1:
+        raise Exception("Обратного элемента не существует")
+    else:
+        print()
+        print(f"=> x_0 = {M_1} * {q} * {min_x} + {M_2} * {p} * {x % q}")
+        print(f"=> x_0 = {min_x * M_1 * q + M_2 * p * (x % q)} mod {p * q}")
+        x_0 = min_x * M_1 * q + M_2 * p * (x % q)
+        if(x_0 < 0):
+            while x_0 < 0:
+                x_0 = x_0 + (p * q)
+            print(f"=> x_0 = {x_0} mod {p * q}\n")
+        if(x_0 > 0):
+            x_0 = x_0 % (p*q)
+    print(f"y_10 = {x_0}")
+    print(f"y_2 = {bin(x_0)[2:]}")
+
+def main():
+    print("Построение системы RSA с 16-битным модулем\n")
+    n_rsa_ci = -1
+    n_rsa_de = -1
+    print()
+    while n_rsa_ci != 15 or n_rsa_de != 15:
+        print("===================================")
+        print("===================================")
+        print("===================================")
+        p, q = find_p_q()
+        print(f"Заданные простые числа:\np = {p}\nq = {q}\n")
+        # Вычисление модуля N и функции Эйлера phi(N)
+        N = p * q
+        phi = (p - 1) * (q - 1)
+        print(f"Вычисляем модуль N = p * q = {p} * {q} = {N}")
+        print(f"Вычисляем функцию Эйлера phi(N) = (p - 1) * (q - 1) = {p-1} * {q-1} = {phi}\n")
+
+        # Выбор открытого показателя e
+        e = 17
+        print(f"Выбираем открытый показатель e = {e}")
+        print_gcd(e,phi)
+        # Проверка взаимно простоты e и phi
+        gcd, _, _ = extended_gcd(e, phi)
+        print(f"Проверяем gcd({e}, {phi}) = {gcd}")
+        if gcd != 1:
+            print("e и phi(N) не взаимно просты. Выбираем другое e.")
+            return
+        else:
+            print("e и phi(N) взаимно просты.\n")
+
+        # Вычисление закрытого ключа d
+        print_gcd(e,phi)
+        print_extended_gcd1(e,phi)
+        d = mod_inverse(e, phi)
+        print(f"Вычисляем закрытый ключ d = e^(-1) mod phi(N) = {d}\n")
+
+        print(f"Открытый ключ: (N = {N}, e = {e})")
+        print(f"Закрытый ключ: d = {d}\n")
+
+        # Шифрование открытого текста x
+        print(f"[*] Шифрование открытого текста x")
+        x_bin = "101010001010101"
+        x = int(x_bin, 2)
+        print(f"Шифрование открытого текста x:")
+        print(f"x в двоичной системе: {x_bin}")
+        print(f"x в десятичной системе: {x}")
+        n_rsa_ci = len(x_bin)
+
+        c = pow(x, e, N)
+        print(f"Вычисляем шифртекст c = x^e mod N = {x}^{e} mod {N} = {c}\n")
+
+        # Расшифрование шифртекста y с использованием КТО
+        print(f"[*] Расшифрование шифртекста y с использованием КТО")
+        y_bin = "101110101101110"
+        y = int(y_bin, 2)
+        print(f"Расшифрование шифртекста y с использованием Китайской теоремы об остатках:")
+        print(f"y в двоичной системе: {y_bin} => {len(y_bin)}")
+        print(f"y в десятичной системе: {y}")
+
+        # Вычисляем d_p и d_q
+        d_p = d % (p - 1)
+        d_q = d % (q - 1)
+        print(f"\nВычисляем d_p = d mod (p - 1) = {d} mod {p-1} = {d_p}")
+        print(f"Вычисляем d_q = d mod (q - 1) = {d} mod {q-1} = {d_q}")
+
+        # Вычисляем y_p и y_q
+        y_p = y % p
+        y_q = y % q
+        print(f"\nВычисляем y_p = y mod p = {y} mod {p} = {y_p}")
+        print(f"Вычисляем y_q = y mod q = {y} mod {q} = {y_q}")
+
+        # Вычисляем m_p и m_q
+        m_p = pow(y_p, d_p, p)
+        m_q = pow(y_q, d_q, q)
+        print(f"\nВычисляем m_p = y_p^d_p mod p = {y_p}^{d_p} mod {p} = {m_p}")
+        print(f"Вычисляем m_q = y_q^d_q mod q = {y_q}^{d_q} mod {q} = {m_q}")
+
+        # Применяем Китайскую теорему об остатках для нахождения m
+        print("\nПрименяем Китайскую теорему об остатках для нахождения m:")
+
+        print("\n [start test]")
+        print_mod_inverse(p, q, m_p, m_q)
+        print("\n [end test]")
+
+        print(f"Система сравнений:\n m ≡ {m_p} mod {p}\n m ≡ {m_q} mod {q}")
+        m = crt(m_p, p, m_q, q)
+        print(f"\nРасшифрованный текст m = {m}")
+        print(f"Расшифрованный текст m = {bin(m)[2:]} => {len(bin(m)[2:])}")
+
+        n_rsa_de = len(bin(m)[2:])
+
+        # Проверка путем прямого расшифрования
+        m_direct = pow(y, d, N)
+        print(f"\nПроверка путем прямого расшифрования:")
+        print(f"m = y^d mod N = {y}^{d} mod {N} = {m_direct}")
+
+
+main()
